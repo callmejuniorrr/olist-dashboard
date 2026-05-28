@@ -47,7 +47,7 @@ st.markdown("""
 # ============================================
 @st.cache_resource
 def get_conn():
-    return duckdb.connect("/tmp/olist.duckdb")
+    return duckdb.connect("/tmp/olist.duckdb") if not __import__("os").name == "nt" else duckdb.connect("olist.duckdb")
 
 conn = get_conn()
 
