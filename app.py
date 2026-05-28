@@ -47,7 +47,7 @@ st.markdown("""
 # ============================================
 @st.cache_resource
 def get_conn():
-    return duckdb.connect(r"C:\PCAMY\Projet SQL\olist\olist.duckdb")
+    return duckdb.connect("/tmp/olist.duckdb")
 
 conn = get_conn()
 
