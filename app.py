@@ -261,8 +261,24 @@ fig3 = px.pie(
     color_discrete_sequence=px.colors.sequential.Blues_r,
     hole=0.4
 )
-fig3.update_layout(**LAYOUT)
-col_g2.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
+
+fig3.update_traces(
+    textposition='outside',
+    textinfo='percent+label'
+)
+
+fig3.update_layout(
+    **LAYOUT,
+    width=420,
+    height=350,
+    margin=dict(l=10, r=10, t=40, b=10)
+)
+
+col_g2.plotly_chart(
+    fig3,
+    use_container_width=False,
+    config={'displayModeBar': False}
+)
 
 st.markdown("---")
 
