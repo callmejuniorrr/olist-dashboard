@@ -66,13 +66,13 @@ st.sidebar.markdown("---")
 
 date_range = conn.execute("""
     SELECT
-        MIN(order_purchase_timestamp)::DATE AS min_date,
-        MAX(order_purchase_timestamp)::DATE AS max_date
+        CAST(MIN(order_purchase_timestamp) AS DATE) AS min_date,
+        CAST(MAX(order_purchase_timestamp) AS DATE) AS max_date
     FROM orders
 """).df()
 
-dataset_min = date_range["min_date"][0]
-dataset_max = date_range["max_date"][0]
+dataset_min = pd.to_datetime(date_range["min_date"][0]).date()
+dataset_max = pd.to_datetime(date_range["max_date"][0]).date()
 
 min_date, max_date = st.sidebar.date_input(
     "Date range",
