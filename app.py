@@ -47,7 +47,14 @@ st.markdown("""
 # ============================================
 @st.cache_resource
 def get_conn():
-    return duckdb.connect("/tmp/olist.duckdb") if not __import__("os").name == "nt" else duckdb.connect("olist.duckdb")
+    import os
+    db_path = "/tmp/olist.duckdb" if os.name != "nt" else "olist.duckdb"
+    conn = duckdb.connect(db_path)
+    conn.execute("CREATE OR REPLACE TABLE orders AS SELECT * FROM read_csv_auto('data/olist_orders_dataset.csv')")
+    conn.execute("CREATE OR REPLACE TABLE customers AS SELECT * FROM read_csv_auto('data/olist_customers_dataset.csv')")
+    conn.execute("CREATE OR REPLACE TABLE order_payments AS SELECT * FROM read_csv_auto('data/olist_order_payments_dataset.csv')")
+    conn.execute("CREATE OR REPLACE TABLE order_items AS SELECT * FROM read_csv_auto('data/olist_order_items_dataset.csv')")
+    return conn
 
 conn = get_conn()
 
