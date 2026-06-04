@@ -251,7 +251,6 @@ df_payment = conn.execute(f"""
     GROUP BY payment_method
 """).df()
 
-names='payment_type'
 
 fig3 = px.pie(
     df_payment,
