@@ -81,23 +81,18 @@ min_date, max_date = st.sidebar.date_input(
     max_value=dataset_max
 )
 
-st.sidebar.markdown("**Quick year filter**")
-col_y1, col_y2, col_y3, col_y4 = st.sidebar.columns(4)
-all_years = col_y1.button("All")
-y2016 = col_y2.button("2016")
-y2017 = col_y3.button("2017")
-y2018 = col_y4.button("2018")
+year_filter = st.sidebar.segmented_control("", options=["All", "2016", "2017", "2018"], default="All")
 
-if y2016:
+if year_filter == "2016":
     min_date = pd.Timestamp("2016-01-01").date()
     max_date = pd.Timestamp("2016-12-31").date()
-elif y2017:
+elif year_filter == "2017":
     min_date = pd.Timestamp("2017-01-01").date()
     max_date = pd.Timestamp("2017-12-31").date()
-elif y2018:
+elif year_filter == "2018":
     min_date = pd.Timestamp("2018-01-01").date()
     max_date = pd.Timestamp("2018-12-31").date()
-elif all_years:
+else:
     min_date = None
     max_date = None
 
@@ -261,7 +256,7 @@ fig3 = px.pie(
     hole=0.4
 )
 
-fig3.update_layout(**LAYOUT)
+fig3.update_layout(**LAYOUT, height=350)
 
 col_g2.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
 
