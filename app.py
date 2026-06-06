@@ -121,39 +121,65 @@ st.markdown("---")
 # ============================================
 # KPIs
 # ============================================
-df_orders = conn.execute(f"""
-    SELECT COUNT(DISTINCT order_id) AS nb_orders
-    FROM orders o
-    {date_filter}
-""").df()
 
-df_ca = conn.execute(f"""
-    SELECT ROUND(SUM(p.payment_value), 2) AS total_ca
-    FROM order_payments p
-    JOIN orders o ON o.order_id = p.order_id
-    {date_filter}
-""").df()
+# Calcul période précédente
+if min_date and max_date:
+    delta_days = (max_date - min_date).days
+    prev_max = min_date - pd.Timedelta(days=1)
+    prev_min = prev_max - pd.Timedelta(days=delta_days)
+    # Clamp si la période précédente dépasse le dataset
+    prev_min = max(prev_min, dataset_min)
+    prev_filter = f"WHERE o.order_purchase_timestamp BETWEEN '{prev_min}' AND '{prev_max}'"
+else:
+    prev_filter = None
 
-df_aov = conn.execute(f"""
-    SELECT ROUND(SUM(p.payment_value) / COUNT(DISTINCT o.order_id), 2) AS panier_moyen
-    FROM order_payments p
-    JOIN orders o ON o.order_id = p.order_id
-    {date_filter}
-""").df()
+def get_kpis(f):
+    orders = conn.execute(f"SELECT COUNT(DISTINCT order_id) AS v FROM orders o {f}").df()["v"][0]
+    ca = conn.execute(f"SELECT ROUND(SUM(p.payment_value),2) AS v FROM order_payments p JOIN orders o ON o.order_id=p.order_id {f}").df()["v"][0]
+    aov = conn.execute(f"SELECT ROUND(SUM(p.payment_value)/COUNT(DISTINCT o.order_id),2) AS v FROM order_payments p JOIN orders o ON o.order_id=p.order_id {f}").df()["v"][0]
+    sellers = conn.execute(f"SELECT COUNT(DISTINCT oi.seller_id) AS v FROM order_items oi JOIN orders o ON o.order_id=oi.order_id {f}").df()["v"][0]
+    return orders, ca, aov, sellers
 
-df_sellers = conn.execute(f"""
-    SELECT COUNT(DISTINCT oi.seller_id) AS nb_sellers
-    FROM order_items oi
-    JOIN orders o ON o.order_id = oi.order_id
-    {date_filter}
-""").df()
+curr = get_kpis(date_filter if date_filter else "")
+prev = get_kpis(prev_filter) if prev_filter else None
+
+def fmt_delta(curr_val, prev_val):
+    if prev_val and prev_val > 0:
+        pct = round((curr_val - prev_val) / prev_val * 100, 1)
+        diff = round(curr_val - prev_val, 2)
+        sign = "+" if pct >= 0 else ""
+        return f"{sign}{pct}% ({sign}{diff:,})"
+    return None
 
 col1, col2, col3, col4 = st.columns([1.5, 2, 1.5, 1.5], gap="large")
-col1.metric("Total Orders", f"{int(df_orders['nb_orders'][0]):,}")
-col2.metric("Total Revenue", f"R$ {df_ca['total_ca'][0]:,}")
-col3.metric("Average Basket", f"R$ {df_aov['panier_moyen'][0]}")
-col4.metric("Active Sellers", f"{int(df_sellers['nb_sellers'][0]):,}")
-
+col1.metric(
+    label="Total Orders",
+    value=f"{int(curr[0]):,}",
+    delta=fmt_delta(curr[0], prev[0]) if prev else None,
+    border=True,
+    help="Compared to the previous period of same duration"
+)
+col2.metric(
+    label="Total Revenue",
+    value=f"R$ {curr[1]:,}",
+    delta=fmt_delta(curr[1], prev[1]) if prev else None,
+    border=True,
+    help="Compared to the previous period of same duration"
+)
+col3.metric(
+    label="Average Basket",
+    value=f"R$ {curr[2]}",
+    delta=fmt_delta(curr[2], prev[2]) if prev else None,
+    border=True,
+    help="Compared to the previous period of same duration"
+)
+col4.metric(
+    label="Active Sellers",
+    value=f"{int(curr[3]):,}",
+    delta=fmt_delta(curr[3], prev[3]) if prev else None,
+    border=True,
+    help="Compared to the previous period of same duration"
+)
 st.markdown("---")
 
 # ============================================
@@ -253,10 +279,11 @@ fig3 = px.pie(
     names='payment_method',
     title='Payment Methods',
     color_discrete_sequence=px.colors.sequential.Blues_r,
-    hole=0.4
+    hole=0.3
 )
 
-fig3.update_layout(**LAYOUT, height=350)
+fig3.update_traces(textposition="inside", textinfo="percent", insidetextorientation="radial")
+fig3.update_layout(**LAYOUT, height=415)
 
 col_g2.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
 
